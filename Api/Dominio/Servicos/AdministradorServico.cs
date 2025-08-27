@@ -15,7 +15,7 @@ public class AdministradorServico : IAdministradorServico
 
     public Administrador? BuscaPorId(int id)
     {
-        return _contexto.Administradores.Where(v => v.Id == id).FirstOrDefault();
+        return _contexto.Administradores.FirstOrDefault(v => v.Id == id);
     }
 
     public Administrador Incluir(Administrador administrador)
@@ -28,18 +28,18 @@ public class AdministradorServico : IAdministradorServico
 
     public Administrador? Login(LoginDTO loginDTO)
     {
-        var adm = _contexto.Administradores.Where(a => a.Email == loginDTO.Email && a.Senha == loginDTO.Senha).FirstOrDefault();
+        Administrador? adm = _contexto.Administradores.FirstOrDefault(a => a.Email == loginDTO.Email && a.Senha == loginDTO.Senha);
         return adm;
     }
 
     public List<Administrador> Todos(int? pagina)
     {
-        var query = _contexto.Administradores.AsQueryable();
+        IQueryable<Administrador> query = _contexto.Administradores.AsQueryable();
 
         int itensPorPagina = 10;
 
-        if(pagina != null)
-            query = query.Skip(((int)pagina - 1) * itensPorPagina).Take(itensPorPagina);
+        if (pagina != null)
+            query = query.Skip(((int)pagina - 1)*itensPorPagina).Take(itensPorPagina);
 
         return query.ToList();
     }

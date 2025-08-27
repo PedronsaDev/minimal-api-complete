@@ -21,11 +21,11 @@ public class Startup
     public Startup(IConfiguration configuration)
     {
         Configuration = configuration;
-        key = Configuration?.GetSection("Jwt")?.ToString() ?? "";
+        _key = Configuration?.GetSection("Jwt")?.ToString() ?? "";
     }
 
-    private string key = "";
-    public IConfiguration Configuration { get;set; } = default!;
+    private string _key;
+    public IConfiguration Configuration { get;set; }
 
     public void ConfigureServices(IServiceCollection services)
     {
@@ -35,7 +35,7 @@ public class Startup
         }).AddJwtBearer(option => {
             option.TokenValidationParameters = new TokenValidationParameters{
                 ValidateLifetime = true,
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_key)),
                 ValidateIssuer = false,
                 ValidateAudience = false,
             };
@@ -111,19 +111,19 @@ public class Startup
 
             #region Administradores
             string GerarTokenJwt(Administrador administrador){
-                if(string.IsNullOrEmpty(key)) return string.Empty;
+                if(string.IsNullOrEmpty(_key)) return string.Empty;
 
-                var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
-                var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+                SymmetricSecurityKey securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_key));
+                SigningCredentials credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
-                var claims = new List<Claim>()
+                List<Claim> claims = new List<Claim>()
                 {
                     new Claim("Email", administrador.Email),
                     new Claim("Perfil", administrador.Perfil),
                     new Claim(ClaimTypes.Role, administrador.Perfil),
                 };
                 
-                var token = new JwtSecurityToken(
+                JwtSecurityToken token = new JwtSecurityToken(
                     claims: claims,
                     expires: DateTime.Now.AddDays(1),
                     signingCredentials: credentials
@@ -133,7 +133,7 @@ public class Startup
             }
 
             endpoints.MapPost("/administradores/login", ([FromBody] LoginDTO loginDTO, IAdministradorServico administradorServico) => {
-                var adm = administradorServico.Login(loginDTO);
+                Administrador? adm = administradorServico.Login(loginDTO);
                 if(adm != null)
                 {
                     string token = GerarTokenJwt(adm);
@@ -179,7 +179,7 @@ public class Startup
             .WithTags("Administradores");
 
             endpoints.MapPost("/administradores", ([FromBody] AdministradorDTO administradorDTO, IAdministradorServico administradorServico) => {
-                var validacao = new ErrosDeValidacao{
+                ErrosDeValidacao validacao = new ErrosDeValidacao{
                     Mensagens = new List<string>()
                 };
 
@@ -213,10 +213,10 @@ public class Startup
             .WithTags("Administradores");
             #endregion
 
-            #region Veiculos
+               #region Veiculos
             ErrosDeValidacao validaDTO(VeiculoDTO veiculoDTO)
             {
-                var validacao = new ErrosDeValidacao{
+                ErrosDeValidacao validacao = new ErrosDeValidacao{
                     Mensagens = new List<string>()
                 };
 
@@ -233,11 +233,11 @@ public class Startup
             }
 
             endpoints.MapPost("/veiculos", ([FromBody] VeiculoDTO veiculoDTO, IVeiculoServico veiculoServico) => {
-                var validacao = validaDTO(veiculoDTO);
+                ErrosDeValidacao validacao = validaDTO(veiculoDTO);
                 if(validacao.Mensagens.Count > 0)
                     return Results.BadRequest(validacao);
                 
-                var veiculo = new Veiculo{
+                Veiculo veiculo = new Veiculo{
                     Nome = veiculoDTO.Nome,
                     Marca = veiculoDTO.Marca,
                     Ano = veiculoDTO.Ano
@@ -257,7 +257,7 @@ public class Startup
             }).RequireAuthorization().WithTags("Veiculos");
 
             endpoints.MapGet("/veiculos/{id}", ([FromRoute] int id, IVeiculoServico veiculoServico) => {
-                var veiculo = veiculoServico.BuscaPorId(id);
+                Veiculo? veiculo = veiculoServico.BuscaPorId(id);
                 if(veiculo == null) return Results.NotFound();
                 return Results.Ok(veiculo);
             })
@@ -266,10 +266,10 @@ public class Startup
             .WithTags("Veiculos");
 
             endpoints.MapPut("/veiculos/{id}", ([FromRoute] int id, VeiculoDTO veiculoDTO, IVeiculoServico veiculoServico) => {
-                var veiculo = veiculoServico.BuscaPorId(id);
+                Veiculo? veiculo = veiculoServico.BuscaPorId(id);
                 if(veiculo == null) return Results.NotFound();
                 
-                var validacao = validaDTO(veiculoDTO);
+                ErrosDeValidacao validacao = validaDTO(veiculoDTO);
                 if(validacao.Mensagens.Count > 0)
                     return Results.BadRequest(validacao);
                 
@@ -286,7 +286,7 @@ public class Startup
             .WithTags("Veiculos");
 
             endpoints.MapDelete("/veiculos/{id}", ([FromRoute] int id, IVeiculoServico veiculoServico) => {
-                var veiculo = veiculoServico.BuscaPorId(id);
+                Veiculo? veiculo = veiculoServico.BuscaPorId(id);
                 if(veiculo == null) return Results.NotFound();
 
                 veiculoServico.Apagar(veiculo);
